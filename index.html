@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Growing Focus</title>
+<style>
+  :root {
+    --sky-top: #cfe8e0;
+    --sky-bottom: #f6ead2;
+    --ground: #7fae6a;
+    --ground-dark: #5f8f4f;
+    --ink: #3a3a2e;
+    --ink-soft: #6b6b58;
+    --card: #fffdf7;
+    --accent: #e08a5b;
+    --accent-soft: #f3c98b;
+    --stem: #4c7a3f;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: linear-gradient(to bottom, var(--sky-top) 0%, var(--sky-bottom) 55%, var(--sky-bottom) 100%);
+    color: var(--ink);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 32px 16px 0;
+  }
+
+  h1 {
+    font-size: 1.6rem;
+    font-weight: 600;
+    margin: 0 0 4px;
+    letter-spacing: 0.01em;
+  }
+
+  .tagline {
+    color: var(--ink-soft);
+    font-size: 0.9rem;
+    margin-bottom: 20px;
+  }
+
+  .stats-bar {
+    display: flex;
+    gap: 20px;
+    background: var(--card);
+    border-radius: 999px;
+    padding: 10px 22px;
+    box-shadow: 0 2px 10px rgba(60,50,20,0.08);
+    margin-bottom: 24px;
+    font-size: 0.82rem;
+    color: var(--ink-soft);
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .stats-bar b {
+    color: var(--ink);
+    font-size: 0.95rem;
+  }
+
+  .timer-card {
+    background: var(--card);
+    border-radius: 28px;
+    box-shadow: 0 8px 24px rgba(60,50,20,0.1);
+    padding: 28px 32px 24px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: min(360px, 90vw);
+  }
+
+  .mode-label {
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--ink-soft);
+    margin-bottom: 4px;
+  }
+
+  .ring-wrap {
+    position: relative;
+    width: 220px;
+    height: 220px;
+    margin: 6px 0 10px;
+  }
+
+  .ring-wrap svg { transform: rotate(-90deg); }
+
+  .ring-bg { fill: none; stroke: #eee6d3; stroke-width: 10; }
+  .ring-fg { fill: none; stroke: var(--accent); stroke-width: 10; stroke-linecap: round; transition: stroke-dashoffset 0.25s linear; }
+
+  .plant-stage {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    padding-bottom: 22px;
+  }
+
+  .time-readout {
+    position: absolute;
+    top: 40%;
+    left: 0;
+    right: 0;
+    text-align: center;
+    font-size: 1.9rem;
+    font-weight: 600;
+    color: var(--ink);
+    pointer-events: none;
+  }
+
+  .duration-row {
+    display: flex;
+    gap: 8px;
+    margin: 8px 0 16px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .chip {
+    border: 1px solid #e4dcc4;
+    background: #fffef9;
+    color: var(--ink-soft);
+    padding: 6px 14px;
+    border-radius: 999px;
+    font-size: 0.82rem;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .chip:hover { border-color: var(--accent-soft); }
+  .chip.active {
+    background: var(--accent-soft);
+    border-color: var(--accent-soft);
+    color: #6b3f16;
+    font-weight: 600;
+  }
+
+  .controls { display: flex; gap: 10px; margin-top: 4px; }
+
+  button.main-btn {
+    border: none;
+    padding: 11px 26px;
+    border-radius: 999px;
+    font-size: 0.92rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.1s, opacity 0.15s;
+  }
+  button.main-btn:active { transform: scale(0.96); }
+
+  .btn-start { background: var(--accent); color: white; }
+  .btn-pause { background: #eee6d3; color: var(--ink); }
+  .btn-giveup { background: transparent; color: #b06a4a; border: 1px solid #e0c3ac; padding: 10px 18px; }
+
+  .hidden { display: none !important; }
+
+  .garden-section {
+    width: min(720px, 94vw);
+    margin: 36px 0 40px;
+  }
+
+  .garden-title {
+    font-size: 1.05rem;
+    font-weight: 600;
+    margin-bottom: 4px;
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+  }
+  .garden-title span { font-size: 0.8rem; font-weight: 400; color: var(--ink-soft); }
+
+  .garden-plot {
+    background: linear-gradient(to bottom, #dff0d8 0%, var(--ground) 18%, var(--ground-dark) 100%);
+    border-radius: 20px;
+    min-height: 140px;
+    margin-top: 10px;
+    padding: 18px 14px 6px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 2px;
+    box-shadow: inset 0 2px 8px rgba(0,0,0,0.12);
+  }
+
+  .garden-empty {
+    color: rgba(255,255,255,0.85);
+    font-size: 0.85rem;
+    margin: auto;
+    padding: 20px 0;
+    text-align: center;
+  }
+
+  .garden-plant {
+    width: 46px;
+    height: 68px;
+    cursor: default;
+    transition: transform 0.15s;
+  }
+  .garden-plant:hover { transform: translateY(-4px) scale(1.08); }
+
+  footer {
+    color: var(--ink-soft);
+    font-size: 0.75rem;
+    margin: 0 0 24px;
+    text-align: center;
+  }
+
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: var(--ink);
+    color: #fdf8ec;
+    padding: 10px 20px;
+    border-radius: 999px;
+    font-size: 0.85rem;
+    opacity: 0;
+    transition: all 0.3s;
+    pointer-events: none;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+
+<h1>🌿 Growing Focus</h1>
+<div class="tagline">Plant something while you work. Finish the session, watch it bloom.</div>
+
+<div class="stats-bar">
+  <div>🔥 Streak: <b id="stat-streak">0</b> days</div>
+  <div>🌸 Grown: <b id="stat-total">0</b></div>
+  <div>⏱ Focused: <b id="stat-minutes">0</b> min</div>
+</div>
+
+<div class="timer-card">
+  <div class="mode-label" id="mode-label">Focus session</div>
+  <div class="ring-wrap">
+    <svg width="220" height="220">
+      <circle class="ring-bg" cx="110" cy="110" r="96"></circle>
+      <circle class="ring-fg" id="ring-fg" cx="110" cy="110" r="96"></circle>
+    </svg>
+    <div class="plant-stage" id="plant-stage"></div>
+    <div class="time-readout" id="time-readout">25:00</div>
+  </div>
+
+  <div class="duration-row" id="duration-row">
+    <button class="chip" data-mins="15">15m</button>
+    <button class="chip active" data-mins="25">25m</button>
+    <button class="chip" data-mins="50">50m</button>
+  </div>
+
+  <div class="controls">
+    <button class="main-btn btn-start" id="btn-start">Start focus</button>
+    <button class="main-btn btn-pause hidden" id="btn-pause">Pause</button>
+    <button class="main-btn btn-giveup hidden" id="btn-giveup">Give up</button>
+  </div>
+</div>
+
+<div class="garden-section">
+  <div class="garden-title">Your garden <span id="garden-count-label"></span></div>
+  <div class="garden-plot" id="garden-plot">
+    <div class="garden-empty">Nothing planted yet — start a focus session to plant your first seed.</div>
+  </div>
+</div>
+
+<footer>Your garden lives only in this browser (saved locally). Give up early and the plant wilts away.</footer>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function () {
+  const STORAGE_KEY = 'growingFocus.v1';
+  const RING_R = 96;
+  const RING_C = 2 * Math.PI * RING_R;
+
+  const PALETTES = [
+    { petal: '#e78ea6', center: '#f6d24e' },
+    { petal: '#b08fd6', center: '#fdf6e3' },
+    { petal: '#f2a65a', center: '#7a4a2b' },
+    { petal: '#7ab8e0', center: '#f6d24e' },
+    { petal: '#e0574f', center: '#f6d24e' },
+    { petal: '#fdf6e3', center: '#f6d24e' }
+  ];
+
+  const els = {
+    ring: document.getElementById('ring-fg'),
+    time: document.getElementById('time-readout'),
+    modeLabel: document.getElementById('mode-label'),
+    plantStage: document.getElementById('plant-stage'),
+    durationRow: document.getElementById('duration-row'),
+    btnStart: document.getElementById('btn-start'),
+    btnPause: document.getElementById('btn-pause'),
+    btnGiveup: document.getElementById('btn-giveup'),
+    gardenPlot: document.getElementById('garden-plot'),
+    gardenCountLabel: document.getElementById('garden-count-label'),
+    statStreak: document.getElementById('stat-streak'),
+    statTotal: document.getElementById('stat-total'),
+    statMinutes: document.getElementById('stat-minutes'),
+    toast: document.getElementById('toast')
+  };
+
+  els.ring.style.strokeDasharray = RING_C;
+  els.ring.style.strokeDashoffset = 0;
+
+  let data = loadData();
+
+  let focusMinutes = 25;
+  let timer = {
+    running: false,
+    paused: false,
+    totalSeconds: focusMinutes * 60,
+    remainingSeconds: focusMinutes * 60,
+    lastTick: null,
+    plantSeed: null,
+    intervalId: null
+  };
+
+  function loadData() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) return JSON.parse(raw);
+    } catch (e) {}
+    return { garden: [], totalSessions: 0, totalMinutes: 0, streak: 0, lastCompletionDate: null };
+  }
+
+  function saveData() {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  }
+
+  function todayStr() {
+    return new Date().toDateString();
+  }
+
+  function yesterdayStr() {
+    const d = new Date();
+    d.setDate(d.getDate() - 1);
+    return d.toDateString();
+  }
+
+  function formatTime(totalSeconds) {
+    const m = Math.floor(totalSeconds / 60);
+    const s = Math.floor(totalSeconds % 60);
+    return String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+  }
+
+  function showToast(msg) {
+    els.toast.textContent = msg;
+    els.toast.classList.add('show');
+    clearTimeout(showToast._t);
+    showToast._t = setTimeout(() => els.toast.classList.remove('show'), 2600);
+  }
+
+  function pickPalette(seed) {
+    return PALETTES[seed % PALETTES.length];
+  }
+
+  function plantSvg(progress, palette, style) {
+    style = style || 'growing';
+    const p = Math.max(0, Math.min(1, progress));
+    const stemH = 6 + 46 * Math.min(1, p / 0.55);
+    const leafOpacity = clamp01((p - 0.18) * 4);
+    const leafScale = 0.4 + 0.6 * leafOpacity;
+    const budOpacity = clamp01((p - 0.55) * 4);
+    const bloomOpacity = clamp01((p - 0.8) * 5);
+    const bloomScale = 0.5 + 0.5 * bloomOpacity;
+    const wilt = style === 'wilted';
+
+    const stemColor = wilt ? '#a89a6b' : '#4c7a3f';
+    const leafColor = wilt ? '#bdae7d' : '#5c9147';
+    const stemCurve = wilt ? 14 : 0;
+
+    return `
+      <svg viewBox="0 0 46 68" width="46" height="68" style="overflow:visible">
+        <path d="M23 66 Q${23 + stemCurve} ${66 - stemH * 0.6} 23 ${66 - stemH}"
+              fill="none" stroke="${stemColor}" stroke-width="4" stroke-linecap="round"/>
+        <ellipse cx="${14}" cy="${66 - stemH * 0.4}" rx="9" ry="5"
+                 fill="${leafColor}" opacity="${leafOpacity}"
+                 transform="rotate(${wilt ? -25 : -20} 14 ${66 - stemH * 0.4}) scale(${leafScale})"
+                 transform-origin="14 ${66 - stemH * 0.4}"/>
+        <ellipse cx="${32}" cy="${66 - stemH * 0.55}" rx="9" ry="5"
+                 fill="${leafColor}" opacity="${leafOpacity}"
+                 transform="rotate(${wilt ? 25 : 20} 32 ${66 - stemH * 0.55}) scale(${leafScale})"
+                 transform-origin="32 ${66 - stemH * 0.55}"/>
+        <circle cx="23" cy="${66 - stemH}" r="4" fill="${palette.center}" opacity="${budOpacity * (1 - bloomOpacity * 0.3)}"/>
+        <g opacity="${bloomOpacity}" transform="translate(23 ${66 - stemH}) scale(${bloomScale})">
+          <circle cx="0" cy="-8" r="6" fill="${palette.petal}"/>
+          <circle cx="7" cy="-3" r="6" fill="${palette.petal}"/>
+          <circle cx="4" cy="6" r="6" fill="${palette.petal}"/>
+          <circle cx="-4" cy="6" r="6" fill="${palette.petal}"/>
+          <circle cx="-7" cy="-3" r="6" fill="${palette.petal}"/>
+          <circle cx="0" cy="0" r="5" fill="${palette.center}"/>
+        </g>
+      </svg>
+    `;
+  }
+
+  function clamp01(n) { return Math.max(0, Math.min(1, n)); }
+
+  function renderGrowingPlant(progress) {
+    const palette = pickPalette(timer.plantSeed || 0);
+    els.plantStage.innerHTML = plantSvg(progress, palette, 'growing');
+  }
+
+  function renderWiltedPlant() {
+    const palette = pickPalette(timer.plantSeed || 0);
+    els.plantStage.innerHTML = plantSvg(0.5, palette, 'wilted');
+    els.plantStage.style.opacity = '0.7';
+  }
+
+  function renderIdlePlant() {
+    els.plantStage.innerHTML = '';
+    els.plantStage.style.opacity = '1';
+  }
+
+  function renderGarden() {
+    const garden = data.garden;
+    els.gardenCountLabel.textContent = garden.length ? `(${garden.length})` : '';
+    if (!garden.length) {
+      els.gardenPlot.innerHTML = '<div class="garden-empty">Nothing planted yet — start a focus session to plant your first seed.</div>';
+      return;
+    }
+    els.gardenPlot.innerHTML = garden.map(p => {
+      const palette = pickPalette(p.seed);
+      const svg = plantSvg(1, palette, 'bloomed');
+      const date = new Date(p.completedAt).toLocaleDateString();
+      return `<div class="garden-plant" title="Grown on ${date} — ${p.minutes} min focus">${svg}</div>`;
+    }).join('');
+  }
+
+  function renderStats() {
+    els.statStreak.textContent = data.streak;
+    els.statTotal.textContent = data.garden.length;
+    els.statMinutes.textContent = data.totalMinutes;
+  }
+
+  function updateStreak() {
+    const today = todayStr();
+    if (data.lastCompletionDate === today) {
+      // already counted today
+    } else if (data.lastCompletionDate === yesterdayStr()) {
+      data.streak += 1;
+      data.lastCompletionDate = today;
+    } else {
+      data.streak = 1;
+      data.lastCompletionDate = today;
+    }
+  }
+
+  function setDurationActive(mins) {
+    document.querySelectorAll('.chip').forEach(c => {
+      c.classList.toggle('active', Number(c.dataset.mins) === mins);
+    });
+  }
+
+  els.durationRow.addEventListener('click', (e) => {
+    const btn = e.target.closest('.chip');
+    if (!btn || timer.running) return;
+    focusMinutes = Number(btn.dataset.mins);
+    setDurationActive(focusMinutes);
+    timer.totalSeconds = focusMinutes * 60;
+    timer.remainingSeconds = focusMinutes * 60;
+    els.time.textContent = formatTime(timer.remainingSeconds);
+    updateRing(0);
+  });
+
+  function updateRing(progress) {
+    const offset = RING_C * (1 - progress);
+    els.ring.style.strokeDashoffset = offset;
+  }
+
+  function tick() {
+    const now = Date.now();
+    const elapsed = (now - timer.lastTick) / 1000;
+    timer.lastTick = now;
+    timer.remainingSeconds = Math.max(0, timer.remainingSeconds - elapsed);
+    const progress = 1 - timer.remainingSeconds / timer.totalSeconds;
+
+    els.time.textContent = formatTime(timer.remainingSeconds);
+    updateRing(progress);
+    renderGrowingPlant(progress);
+
+    if (timer.remainingSeconds <= 0) {
+      completeSession();
+    }
+  }
+
+  function startSession() {
+    timer.running = true;
+    timer.paused = false;
+    timer.totalSeconds = focusMinutes * 60;
+    timer.remainingSeconds = focusMinutes * 60;
+    timer.plantSeed = Math.floor(Math.random() * 1000);
+    timer.lastTick = Date.now();
+
+    els.modeLabel.textContent = 'Focus session — growing…';
+    els.btnStart.classList.add('hidden');
+    els.btnPause.classList.remove('hidden');
+    els.btnGiveup.classList.remove('hidden');
+    els.btnPause.textContent = 'Pause';
+    els.durationRow.querySelectorAll('.chip').forEach(c => c.style.opacity = '0.5');
+
+    updateRing(0);
+    renderGrowingPlant(0);
+
+    timer.intervalId = setInterval(tick, 250);
+  }
+
+  function togglePause() {
+    if (!timer.running) return;
+    if (timer.paused) {
+      timer.paused = false;
+      timer.lastTick = Date.now();
+      timer.intervalId = setInterval(tick, 250);
+      els.btnPause.textContent = 'Pause';
+      els.modeLabel.textContent = 'Focus session — growing…';
+    } else {
+      timer.paused = true;
+      clearInterval(timer.intervalId);
+      els.btnPause.textContent = 'Resume';
+      els.modeLabel.textContent = 'Paused';
+    }
+  }
+
+  function completeSession() {
+    clearInterval(timer.intervalId);
+    timer.running = false;
+    timer.paused = false;
+
+    data.garden.push({
+      seed: timer.plantSeed,
+      completedAt: Date.now(),
+      minutes: focusMinutes
+    });
+    data.totalSessions += 1;
+    data.totalMinutes += focusMinutes;
+    updateStreak();
+    saveData();
+
+    renderGarden();
+    renderStats();
+    renderIdlePlant();
+    playChime();
+    showToast('🌸 Bloomed! Nice focus session.');
+    resetControls();
+  }
+
+  function giveUp() {
+    if (!timer.running) return;
+    clearInterval(timer.intervalId);
+    timer.running = false;
+    timer.paused = false;
+    renderWiltedPlant();
+    showToast('🥀 Wilted — that one didn\'t count. Try again whenever.');
+    setTimeout(() => {
+      renderIdlePlant();
+      updateRing(0);
+      timer.remainingSeconds = focusMinutes * 60;
+      els.time.textContent = formatTime(timer.remainingSeconds);
+    }, 1400);
+    resetControls();
+  }
+
+  function resetControls() {
+    els.btnStart.classList.remove('hidden');
+    els.btnStart.textContent = 'Start focus';
+    els.btnPause.classList.add('hidden');
+    els.btnGiveup.classList.add('hidden');
+    els.modeLabel.textContent = 'Focus session';
+    els.durationRow.querySelectorAll('.chip').forEach(c => c.style.opacity = '1');
+    timer.totalSeconds = focusMinutes * 60;
+    timer.remainingSeconds = focusMinutes * 60;
+    els.time.textContent = formatTime(timer.remainingSeconds);
+    updateRing(0);
+  }
+
+  let audioCtx = null;
+  function playChime() {
+    try {
+      audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+      const notes = [523.25, 659.25, 783.99];
+      notes.forEach((freq, i) => {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.value = freq;
+        gain.gain.setValueAtTime(0, audioCtx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.12, audioCtx.currentTime + i * 0.12 + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + i * 0.12 + 0.8);
+        osc.connect(gain).connect(audioCtx.destination);
+        osc.start(audioCtx.currentTime + i * 0.12);
+        osc.stop(audioCtx.currentTime + i * 0.12 + 0.85);
+      });
+    } catch (e) {}
+  }
+
+  els.btnStart.addEventListener('click', startSession);
+  els.btnPause.addEventListener('click', togglePause);
+  els.btnGiveup.addEventListener('click', giveUp);
+
+  els.time.textContent = formatTime(timer.remainingSeconds);
+  renderGarden();
+  renderStats();
+})();
+</script>
+
+</body>
+</html>
